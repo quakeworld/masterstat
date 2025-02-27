@@ -1,14 +1,12 @@
+use std::io::Cursor;
 use std::sync::Arc;
 use std::time::Duration;
 
 use anyhow::{anyhow as e, Result};
+use binrw::BinRead;
 use tokio::sync::Mutex;
-use zerocopy::FromBytes;
 
-use crate::server_address::{RawServerAddress, ServerAddress, RAW_ADDRESS_SIZE};
-
-const SERVERS_COMMAND: [u8; 3] = [0x63, 0x0a, 0x00];
-const SERVERS_RESPONSE_HEADER: [u8; 6] = [0xff, 0xff, 0xff, 0xff, 0x64, 0x0a];
+use crate::server_address::{RawServerAddress, ServerAddress};
 
 /// Get server addresses from a single master server
 ///
@@ -28,11 +26,12 @@ pub fn server_addresses(
     master_address: &str,
     timeout: Option<Duration>,
 ) -> Result<Vec<ServerAddress>> {
+    const MESSAGE: [u8; 3] = [99, 10, 0];
     let options = tinyudp::ReadOptions {
         timeout,
         buffer_size: 16 * 1024, // 16 kb
     };
-    let response = tinyudp::send_and_read(master_address, &SERVERS_COMMAND, &options)?;
+    let response = tinyudp::send_and_read(master_address, &MESSAGE, &options)?;
     let server_addresses = parse_servers_response(&response)?;
     Ok(sorted_and_unique(&server_addresses))
 }
@@ -59,7 +58,6 @@ pub async fn server_addresses_from_many(
 
     for master_address in master_addresses.iter().map(|a| a.as_ref().to_string()) {
         let result_mux = result_mux.clone();
-
         let task = tokio::spawn(async move {
             if let Ok(servers) = server_addresses(&master_address, timeout) {
                 let mut result = result_mux.lock().await;
@@ -76,22 +74,23 @@ pub async fn server_addresses_from_many(
 }
 
 fn parse_servers_response(response: &[u8]) -> Result<Vec<ServerAddress>> {
-    if !response.starts_with(&SERVERS_RESPONSE_HEADER) {
+    const RESPONSE_HEADER: [u8; 6] = [255, 255, 255, 255, 100, 10];
+
+    if !response.starts_with(&RESPONSE_HEADER) {
         return Err(e!("Invalid response"));
     }
 
-    let body = &response[SERVERS_RESPONSE_HEADER.len()..];
-    let server_addresses = body
-        .chunks(RAW_ADDRESS_SIZE)
-        .filter(|b| b.len() == RAW_ADDRESS_SIZE)
-        .filter_map(RawServerAddress::read_from)
-        .map(ServerAddress::from)
-        .collect::<Vec<ServerAddress>>();
+    let body = &mut Cursor::new(&response[RESPONSE_HEADER.len()..]);
+    let mut server_addresses = vec![];
+
+    while let Ok(raw_address) = RawServerAddress::read(body) {
+        server_addresses.push(ServerAddress::from(raw_address));
+    }
 
     Ok(server_addresses)
 }
 
-pub fn sorted_and_unique(server_addresses: &[ServerAddress]) -> Vec<ServerAddress> {
+fn sorted_and_unique(server_addresses: &[ServerAddress]) -> Vec<ServerAddress> {
     let mut servers = server_addresses.to_vec();
     servers.sort();
     servers.dedup();
