@@ -1,14 +1,11 @@
+use binrw::BinRead;
 use std::fmt::Display;
 
-use zerocopy::{BigEndian, U16};
-use zerocopy_derive::{FromBytes, FromZeroes};
-
-pub const RAW_ADDRESS_SIZE: usize = 6;
-
-#[derive(FromZeroes, FromBytes)]
+#[derive(BinRead)]
+#[br(big)]
 pub struct RawServerAddress {
     pub ip: [u8; 4],
-    pub port: U16<BigEndian>,
+    pub port: u16,
 }
 
 #[derive(Clone, Debug, Hash, PartialOrd, Ord, PartialEq, Eq)]
@@ -27,30 +24,32 @@ impl From<RawServerAddress> for ServerAddress {
     fn from(raw: RawServerAddress) -> Self {
         ServerAddress {
             ip: raw.ip.map(|b| b.to_string()).join("."),
-            port: raw.port.into(),
+            port: raw.port,
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use pretty_assertions::assert_eq;
-    use zerocopy::{FromBytes, U16};
-
     use crate::server_address::{RawServerAddress, ServerAddress};
+    use anyhow::Result;
+    use binrw::BinRead;
+    use pretty_assertions::assert_eq;
+    use std::io::Cursor;
 
     #[test]
-    fn test_raw_server_address() {
-        let raw_address = RawServerAddress::read_from(&[192, 168, 1, 1, 0x75, 0x30]).unwrap();
+    fn test_raw_server_address() -> Result<()> {
+        let raw_address = RawServerAddress::read(&mut Cursor::new(&[192, 168, 1, 1, 117, 48]))?;
         assert_eq!(raw_address.ip, [192, 168, 1, 1]);
-        assert_eq!(raw_address.port, U16::from(30000));
+        assert_eq!(raw_address.port, 30000);
+        Ok(())
     }
 
     #[test]
     fn test_server_address_from_raw_server_address() {
         let raw_address = RawServerAddress {
             ip: [192, 168, 1, 1],
-            port: U16::from(30000),
+            port: 30000,
         };
         let address = ServerAddress::from(raw_address);
         assert_eq!(address.ip, "192.168.1.1");
