@@ -2,7 +2,7 @@
 name = "masterstat"
 description = "Get server addresses from QuakeWorld master servers."
 keywords = ["masters", "quake", "quakeworld", "servers"]
-repository = "https://github.com/vikpe/masterstat-rust"
+repository = "https://github.com/quakeworld/masterstat"
 authors = ["Viktor Persson <viktor.persson@arcsin.se>"]
 version = "0.2.0"
 edition = "2021"
