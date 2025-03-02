@@ -4,6 +4,7 @@
 
 mod command;
 mod server_address;
+mod tinyudp;
 
 pub use crate::command::server_addresses;
 pub use crate::command::server_addresses_from_many;

@@ -4,7 +4,7 @@ description = "Get server addresses from QuakeWorld master servers."
 keywords = ["masters", "quake", "quakeworld", "servers"]
 repository = "https://github.com/quakeworld/masterstat"
 authors = ["Viktor Persson <viktor.persson@arcsin.se>"]
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 license = "MIT"
 include = [
@@ -21,8 +21,8 @@ include = [
 anyhow = "1.0.82"
 binrw = "0.14.1"
 futures = "0.3.30"
-tinyudp = "0.4.0"
-tokio = { version = "1.37.0", features = ["rt", "sync"] }
+thiserror = "2.0.11"
+tokio = { version = "1.37.0", features = ["macros", "net", "rt-multi-thread", "sync", "time"] }
 
 [dev-dependencies]
 pretty_assertions = "1.4.0"

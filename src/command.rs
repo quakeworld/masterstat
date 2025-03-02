@@ -7,6 +7,7 @@ use binrw::BinRead;
 use tokio::sync::Mutex;
 
 use crate::server_address::{RawServerAddress, ServerAddress};
+use crate::tinyudp;
 
 /// Get server addresses from a single master server
 ///
@@ -15,28 +16,33 @@ use crate::server_address::{RawServerAddress, ServerAddress};
 /// ```
 /// use std::time::Duration;
 ///
-/// let master = "master.quakeworld.nu:27000";
-/// let timeout = Some(Duration::from_secs(2));
-/// match masterstat::server_addresses(&master, timeout) {
-///     Ok(addresses) => { println!("found {} server addresses", addresses.len()) },
-///     Err(e) => { eprintln!("error: {}", e); }
+/// async fn test() {
+///     let master = "master.quakeworld.nu:27000";
+///     let timeout = Duration::from_secs(2);
+///     match masterstat::server_addresses(&master, timeout).await {
+///         Ok(result) => { println!("found {} server addresses", result.len()) },
+///         Err(e) => { eprintln!("error: {}", e); }
+///     }
 /// }
 /// ```
-pub fn server_addresses(
+pub async fn server_addresses(
     master_address: &str,
-    timeout: Option<Duration>,
+    timeout: Duration,
 ) -> Result<Vec<ServerAddress>> {
-    const MESSAGE: [u8; 3] = [99, 10, 0];
-    let options = tinyudp::ReadOptions {
-        timeout,
-        buffer_size: 16 * 1024, // 16 kb
-    };
-    let response = tinyudp::send_and_read(master_address, &MESSAGE, &options)?;
-    let server_addresses = parse_servers_response(&response)?;
-    Ok(sorted_and_unique(&server_addresses))
+    const STATUS_MSG: [u8; 3] = [99, 10, 0];
+    let response = tinyudp::send_and_receive(
+        master_address,
+        &STATUS_MSG,
+        tinyudp::Options {
+            timeout,
+            buffer_size: 64 * 1024, // 64 kb
+        },
+    )
+    .await?;
+    parse_servers_response(&response)
 }
 
-/// Get server addresses from many master servers (async, in parallel)
+/// Get server addresses from many master servers (concurrently)
 ///
 /// # Example
 ///
@@ -45,13 +51,14 @@ pub fn server_addresses(
 ///
 /// async fn test() {
 ///     let masters = ["master.quakeworld.nu:27000", "master.quakeservers.net:27000"];
-///     let timeout = Some(Duration::from_secs(2));
-///     let server_addresses = masterstat::server_addresses_from_many(&masters, timeout).await;
+///     let timeout = Duration::from_secs(2);
+///     let result = masterstat::server_addresses_from_many(&masters, timeout).await;
+///     println!("found {} server addresses", result.len());
 /// }
 /// ```
 pub async fn server_addresses_from_many(
     master_addresses: &[impl AsRef<str>],
-    timeout: Option<Duration>,
+    timeout: Duration,
 ) -> Vec<ServerAddress> {
     let mut task_handles = vec![];
     let result_mux = Arc::<Mutex<Vec<ServerAddress>>>::default();
@@ -59,7 +66,7 @@ pub async fn server_addresses_from_many(
     for master_address in master_addresses.iter().map(|a| a.as_ref().to_string()) {
         let result_mux = result_mux.clone();
         let task = tokio::spawn(async move {
-            if let Ok(servers) = server_addresses(&master_address, timeout) {
+            if let Ok(servers) = server_addresses(&master_address, timeout).await {
                 let mut result = result_mux.lock().await;
                 result.extend(servers);
             }
@@ -99,12 +106,33 @@ fn sorted_and_unique(server_addresses: &[ServerAddress]) -> Vec<ServerAddress> {
 
 #[cfg(test)]
 mod tests {
-    use pretty_assertions::assert_eq;
-
     use super::*;
+    // use pretty_assertions::assert_eq;
 
-    #[test]
-    fn test_parse_servers_response() -> Result<()> {
+    #[tokio::test]
+    async fn test_server_addresses() -> Result<()> {
+        let master = "master.quakeservers.net:27000";
+        let timeout = Duration::from_secs(1);
+        let result = server_addresses(master, timeout).await?;
+        assert!(!result.is_empty());
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_server_addresses_from_many() -> Result<()> {
+        let masters = [
+            "master.quakeservers.net:27000",
+            "master.quakeworld.nu:27000",
+            "qwmaster.fodquake.net:27000",
+        ];
+        let timeout = Duration::from_secs(1);
+        let result = server_addresses_from_many(&masters, timeout).await;
+        assert!(result.len() > 500);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_parse_servers_response() -> Result<()> {
         // invalid response header
         {
             let response = [0xff, 0xff];
