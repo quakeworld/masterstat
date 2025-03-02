@@ -112,7 +112,7 @@ mod tests {
     #[tokio::test]
     async fn test_server_addresses() -> Result<()> {
         let master = "master.quakeservers.net:27000";
-        let timeout = Duration::from_secs(2);
+        let timeout = Duration::from_secs(10);
         let result = server_addresses(master, timeout).await?;
         assert!(!result.is_empty());
         Ok(())
@@ -123,9 +123,8 @@ mod tests {
         let masters = [
             "master.quakeservers.net:27000",
             "master.quakeworld.nu:27000",
-            "qwmaster.fodquake.net:27000",
         ];
-        let timeout = Duration::from_secs(2);
+        let timeout = Duration::from_secs(10);
         let result = server_addresses_from_many(&masters, timeout).await;
         assert!(result.len() > 500);
         Ok(())
