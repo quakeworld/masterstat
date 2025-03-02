@@ -107,24 +107,26 @@ fn sorted_and_unique(server_addresses: &[ServerAddress]) -> Vec<ServerAddress> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    // use pretty_assertions::assert_eq;
+    use pretty_assertions::assert_eq;
 
     #[tokio::test]
+    #[cfg_attr(feature = "ci", ignore)]
     async fn test_server_addresses() -> Result<()> {
         let master = "master.quakeservers.net:27000";
-        let timeout = Duration::from_secs(10);
+        let timeout = Duration::from_secs(2);
         let result = server_addresses(master, timeout).await?;
         assert!(!result.is_empty());
         Ok(())
     }
 
     #[tokio::test]
+    #[cfg_attr(feature = "ci", ignore)]
     async fn test_server_addresses_from_many() -> Result<()> {
         let masters = [
             "master.quakeservers.net:27000",
             "master.quakeworld.nu:27000",
         ];
-        let timeout = Duration::from_secs(10);
+        let timeout = Duration::from_secs(2);
         let result = server_addresses_from_many(&masters, timeout).await;
         assert!(result.len() > 500);
         Ok(())
