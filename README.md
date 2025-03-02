@@ -15,12 +15,13 @@ cargo add masterstat
 ```rust
 use std::time::Duration;
 
-let master = "master.quakeworld.nu:27000";
-let timeout = Some(Duration::from_secs(2));
-
-match masterstat::server_addresses(&master, timeout) {
-    Ok(addresses) => { println!("found {} server addresses", addresses.len()) },
-    Err(e) => { eprintln!("error: {}", e); }
+async fn test() {
+    let master = "master.quakeworld.nu:27000";
+    let timeout = Duration::from_secs(2);
+    match masterstat::server_addresses(&master, timeout).await {
+        Ok(result) => { println!("found {} server addresses", result.len()) },
+        Err(e) => { eprintln!("error: {}", e); }
+    }
 }
 ```
 
@@ -30,9 +31,10 @@ match masterstat::server_addresses(&master, timeout) {
 use std::time::Duration;
 
 async fn test() {
-  let masters = ["master.quakeworld.nu:27000", "master.quakeservers.net:27000"];
-  let timeout = Some(Duration::from_secs(2));
-  let server_addresses = masterstat::server_addresses_from_many(&masters, timeout).await?;
+    let masters = ["master.quakeworld.nu:27000", "master.quakeservers.net:27000"];
+    let timeout = Duration::from_secs(2);
+    let result = masterstat::server_addresses_from_many(&masters, timeout).await;
+    println!("found {} server addresses", result.len());
 }
 ```
 
