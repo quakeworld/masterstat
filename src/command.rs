@@ -29,17 +29,8 @@ pub async fn server_addresses(
     master_address: &str,
     timeout: Duration,
 ) -> Result<Vec<ServerAddress>> {
-    const STATUS_MSG: [u8; 3] = [99, 10, 0];
-    let response = tinyudp::send_and_receive(
-        master_address,
-        &STATUS_MSG,
-        tinyudp::Options {
-            timeout,
-            buffer_size: 64 * 1024, // 64 kb
-        },
-    )
-    .await?;
-    parse_servers_response(&response)
+    let servers = get_server_addresses(master_address, timeout).await?;
+    Ok(sorted_and_unique(&servers))
 }
 
 /// Get server addresses from many master servers (concurrently)
@@ -66,7 +57,7 @@ pub async fn server_addresses_from_many(
     for master_address in master_addresses.iter().map(|a| a.as_ref().to_string()) {
         let result_mux = result_mux.clone();
         let task = tokio::spawn(async move {
-            if let Ok(servers) = server_addresses(&master_address, timeout).await {
+            if let Ok(servers) = get_server_addresses(&master_address, timeout).await {
                 let mut result = result_mux.lock().await;
                 result.extend(servers);
             }
@@ -80,7 +71,24 @@ pub async fn server_addresses_from_many(
     sorted_and_unique(&server_addresses)
 }
 
-fn parse_servers_response(response: &[u8]) -> Result<Vec<ServerAddress>> {
+async fn get_server_addresses(
+    master_address: &str,
+    timeout: Duration,
+) -> Result<Vec<ServerAddress>> {
+    const STATUS_MSG: [u8; 3] = [99, 10, 0];
+    let response = tinyudp::send_and_receive(
+        master_address,
+        &STATUS_MSG,
+        tinyudp::Options {
+            timeout,
+            buffer_size: 64 * 1024, // 64 kb
+        },
+    )
+    .await?;
+    parse_response(&response)
+}
+
+fn parse_response(response: &[u8]) -> Result<Vec<ServerAddress>> {
     const RESPONSE_HEADER: [u8; 6] = [255, 255, 255, 255, 100, 10];
 
     if !response.starts_with(&RESPONSE_HEADER) {
@@ -133,11 +141,11 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_parse_servers_response() -> Result<()> {
+    async fn test_parse_response() -> Result<()> {
         // invalid response header
         {
             let response = [0xff, 0xff];
-            let result = parse_servers_response(&response);
+            let result = parse_response(&response);
             assert_eq!(result.unwrap_err().to_string(), "Invalid response");
         }
 
@@ -147,7 +155,7 @@ mod tests {
                 0xff, 0xff, 0xff, 0xff, 0x64, 0x0a, 192, 168, 1, 1, 0x75, 0x30, 192, 168, 1, 2,
                 0x75, 0x30,
             ];
-            let result = parse_servers_response(&response)?;
+            let result = parse_response(&response)?;
             assert_eq!(result.len(), 2);
             assert_eq!(result[0].ip, "192.168.1.1");
             assert_eq!(result[0].port, 30000);
