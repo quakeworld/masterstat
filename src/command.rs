@@ -2,12 +2,12 @@ use std::io::Cursor;
 use std::sync::Arc;
 use std::time::Duration;
 
-use anyhow::{anyhow as e, Result};
+use anyhow::{Result, anyhow as e};
 use binrw::BinRead;
 use tokio::sync::Mutex;
 
 use crate::server_address::{RawServerAddress, ServerAddress};
-use crate::tinyudp;
+use tinyudp;
 
 /// Get server addresses from a single master server
 ///
@@ -79,7 +79,7 @@ async fn get_server_addresses(
     let response = tinyudp::send_and_receive(
         master_address,
         &STATUS_MSG,
-        tinyudp::Options {
+        tinyudp::ReadOptions {
             timeout,
             buffer_size: 64 * 1024, // 64 kb
         },
