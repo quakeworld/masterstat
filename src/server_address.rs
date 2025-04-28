@@ -1,6 +1,9 @@
 use binrw::BinRead;
 use std::fmt::Display;
 
+#[cfg(feature = "json")]
+use serde::{Serialize, Serializer};
+
 #[derive(BinRead)]
 #[br(big)]
 pub struct RawServerAddress {
@@ -26,6 +29,16 @@ impl From<RawServerAddress> for ServerAddress {
             ip: raw.ip.map(|b| b.to_string()).join("."),
             port: raw.port,
         }
+    }
+}
+
+#[cfg(feature = "json")]
+impl Serialize for ServerAddress {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&self.to_string())
     }
 }
 
@@ -63,5 +76,19 @@ mod tests {
             port: 30000,
         };
         assert_eq!(address.to_string(), "192.168.1.1:30000");
+    }
+
+    #[cfg(feature = "json")]
+    #[test]
+    fn test_serialize() -> Result<()> {
+        assert_eq!(
+            serde_json::to_string(&ServerAddress {
+                ip: "10.10.10.10".to_string(),
+                port: 30000,
+            })?,
+            r#""10.10.10.10:30000""#
+        );
+
+        Ok(())
     }
 }

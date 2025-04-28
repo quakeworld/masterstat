@@ -7,7 +7,6 @@ use binrw::BinRead;
 use tokio::sync::Mutex;
 
 use crate::server_address::{RawServerAddress, ServerAddress};
-use tinyudp;
 
 /// Get server addresses from a single master server
 ///
