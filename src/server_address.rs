@@ -6,12 +6,12 @@ use serde::{Serialize, Serializer};
 
 #[derive(BinRead)]
 #[br(big)]
-pub struct RawServerAddress {
-    pub ip: [u8; 4],
-    pub port: u16,
+pub(crate) struct RawServerAddress {
+    ip: [u8; 4],
+    port: u16,
 }
 
-#[derive(Clone, Debug, Hash, PartialOrd, Ord, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ServerAddress {
     pub ip: String,
     pub port: u16,
@@ -29,6 +29,12 @@ impl From<RawServerAddress> for ServerAddress {
             ip: raw.ip.map(|b| b.to_string()).join("."),
             port: raw.port,
         }
+    }
+}
+
+impl From<&ServerAddress> for String {
+    fn from(addr: &ServerAddress) -> Self {
+        addr.to_string()
     }
 }
 
@@ -67,6 +73,16 @@ mod tests {
         let address = ServerAddress::from(raw_address);
         assert_eq!(address.ip, "192.168.1.1");
         assert_eq!(address.port, 30000);
+    }
+
+    #[test]
+    fn test_from_server_address_ref_for_string() {
+        let address = ServerAddress {
+            ip: "10.10.10.10".to_string(),
+            port: 30000,
+        };
+        let address_str: String = String::from(&address);
+        assert_eq!(address_str, "10.10.10.10:30000");
     }
 
     #[test]
