@@ -77,12 +77,15 @@ impl MultiQueryResult {
 ///
 /// # Example
 /// ```rust
-/// let master_addresses = vec![
-///     "master.quakeservers.net:27000".to_string(),
-///     "master.quakeworld.nu:27000".to_string(),
-/// ];
-/// let timeout = std::time::Duration::from_secs(2);
-/// let result = query_multiple(&master_addresses, timeout).await;
+/// #[tokio::main]
+/// async fn main() {
+///     let master_addresses = vec![
+///         "master.quakeservers.net:27000".to_string(),
+///         "master.quakeworld.nu:27000".to_string(),
+///     ];
+///     let timeout = std::time::Duration::from_secs(2);
+///     let result = masterstat::query_multiple(&master_addresses, timeout).await;
+/// }
 /// ```
 pub async fn query_multiple(master_addresses: &[String], timeout: Duration) -> MultiQueryResult {
     let tasks = master_addresses
