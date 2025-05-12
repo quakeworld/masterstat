@@ -16,6 +16,10 @@ impl QuerySuccess {
     pub fn server_addresses(&self) -> impl Iterator<Item = &String> {
         self.server_addresses.iter()
     }
+
+    pub fn take_server_addresses(self) -> Vec<String> {
+        self.server_addresses
+    }
 }
 
 #[derive(Debug)]
@@ -53,8 +57,8 @@ impl MultiQueryResult {
         self.failures.iter()
     }
 
-    /// Iterator over unique server addresses from successful queries.
-    pub fn server_addresses(&self) -> impl Iterator<Item = String> {
+    /// Unique server addresses from successful queries.
+    pub fn server_addresses(&self) -> Vec<String> {
         let mut addresses: Vec<String> = self
             .successes
             .iter()
@@ -62,7 +66,7 @@ impl MultiQueryResult {
             .collect();
         addresses.sort();
         addresses.dedup();
-        addresses.into_iter()
+        addresses
     }
 }
 
@@ -126,7 +130,7 @@ mod tests {
         ];
         let results = query_multiple(&master_addresses, Duration::from_secs(2)).await;
 
-        assert!(results.server_addresses().count() >= 300);
+        assert!(results.server_addresses().len() >= 300);
         assert!(2 == results.successful_queries().count());
         assert!(1 == results.failed_queries().count());
 
