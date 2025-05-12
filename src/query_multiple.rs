@@ -13,12 +13,8 @@ impl QuerySuccess {
         &self.master_address
     }
 
-    pub fn server_addresses(&self) -> impl Iterator<Item = &String> {
-        self.server_addresses.iter()
-    }
-
-    pub fn take_server_addresses(self) -> Vec<String> {
-        self.server_addresses
+    pub fn server_addresses(&self) -> &[String] {
+        &self.server_addresses
     }
 }
 
@@ -62,7 +58,8 @@ impl MultiQueryResult {
         let mut addresses: Vec<String> = self
             .successes
             .iter()
-            .flat_map(|res| res.server_addresses().cloned())
+            .flat_map(|res| res.server_addresses().iter())
+            .cloned()
             .collect();
         addresses.sort();
         addresses.dedup();
@@ -135,14 +132,14 @@ mod tests {
         assert!(1 == results.failed_queries().count());
 
         let query1 = results.successful_queries().next().unwrap();
-        assert!(query1.server_addresses().count() >= 300);
+        assert!(query1.server_addresses().len() >= 300);
         assert_eq!(
             query1.master_address(),
             "master.quakeservers.net:27000".to_string()
         );
 
         let query2 = results.successful_queries().last().unwrap();
-        assert!(query2.server_addresses().count() >= 300);
+        assert!(query2.server_addresses().len() >= 300);
         assert_eq!(
             query2.master_address(),
             "master.quakeworld.nu:27000".to_string()
