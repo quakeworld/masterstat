@@ -23,15 +23,9 @@ use crate::server_address::RawServerAddress;
 /// ```
 pub async fn query(master_address: &str, timeout: Duration) -> Result<Vec<String>> {
     const STATUS_MSG: [u8; 3] = [99, 10, 0];
-    let response = tinyudp::send_and_receive(
-        master_address,
-        &STATUS_MSG,
-        tinyudp::ReadOptions {
-            timeout,
-            buffer_size: 64 * 1024, // 64 kb
-        },
-    )
-    .await?;
+    const BUFFER_SIZE: usize = 64 * 1024;
+    let options = tinyudp::ReadOptions::new(timeout, BUFFER_SIZE);
+    let response = tinyudp::send_and_receive_async(master_address, &STATUS_MSG, options).await?;
     parse_response(&response)
 }
 

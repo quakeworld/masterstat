@@ -1,6 +1,6 @@
 # masterstat [![Test](https://github.com/quakeworld/masterstat/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/quakeworld/masterstat/actions/workflows/test.yml) [![crates](https://img.shields.io/crates/v/masterstat)](https://crates.io/crates/masterstat) [![docs.rs](https://img.shields.io/docsrs/masterstat)](https://docs.rs/masterstat/)
 
-> Get server addresses from QuakeWorld master servers
+> A Rust crate for querying QuakeWorld master servers
 
 ## Installation
 
