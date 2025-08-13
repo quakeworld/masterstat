@@ -2,8 +2,9 @@
 //!
 //! Get server addresses from QuakeWorld master servers.
 
-mod command;
+mod query;
+mod query_multiple;
 mod server_address;
 
-pub use crate::command::{server_addresses, server_addresses_from_many};
-pub use crate::server_address::ServerAddress;
+pub use crate::query::query;
+pub use crate::query_multiple::{MultiQueryResult, query_multiple};

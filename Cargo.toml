@@ -4,32 +4,26 @@ description = "Get server addresses from QuakeWorld master servers."
 keywords = ["masters", "quake", "quakeworld", "servers"]
 repository = "https://github.com/quakeworld/masterstat"
 authors = ["Viktor Persson <viktor.persson@arcsin.se>"]
-version = "0.7.0"
+version = "0.8.0"
 edition = "2024"
 license = "MIT"
-include = [
-    "/Cargo.toml",
-    "/LICENSE",
-    "/README.md",
-    "/src/**",
-    "/tests/**",
-]
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+include = ["/Cargo.toml", "/LICENSE", "/README.md", "/src/**", "/tests/**"]
 
 [dependencies]
 anyhow = "1.0.97"
-binrw = "0.14.1"
+binrw = "0.15.0"
 futures = "0.3.31"
-tokio = { version = "1.44.1", features = ["macros", "net", "rt-multi-thread", "sync", "time"] }
-tinyudp = "0.5.1"
-
-serde = { optional = true, version = "1.0.219", features = ["derive"] }
-serde_json = { optional = true, version = "1.0.140" }
+tokio = { version = "1.44.1", features = [
+    "macros",
+    "net",
+    "rt-multi-thread",
+    "sync",
+    "time",
+] }
+tinyudp = { version = "0.6.0", features = ["tokio"] }
 
 [dev-dependencies]
 pretty_assertions = "1.4.1"
 
 [features]
 ci = []
-json = ["dep:serde", "dep:serde_json"]
